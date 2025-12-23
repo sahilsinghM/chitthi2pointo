@@ -1,0 +1,234 @@
+// Prisma schema for Beehiiv-like MVP
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  EDITOR
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  UNSUBSCRIBED
+  BOUNCED
+  COMPLAINED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+}
+
+enum SendJobStatus {
+  QUEUED
+  PROCESSING
+  SENT
+  FAILED
+  RETRYING
+}
+
+enum SendEventType {
+  DELIVERED
+  OPEN
+  CLICK
+  UNSUBSCRIBE
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  passwordHash String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  memberships  Membership[]
+  sessions     Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Publication {
+  id               String        @id @default(cuid())
+  name             String
+  slug             String        @unique
+  fromName         String
+  fromEmail        String
+  replyToEmail     String?
+  sendingDomain    String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  memberships      Membership[]
+  subscribers      Subscriber[]
+  campaigns        Campaign[]
+  tags             Tag[]
+  segments         Segment[]
+}
+
+model Membership {
+  id             String         @id @default(cuid())
+  userId         String
+  publicationId  String
+  role           MembershipRole @default(OWNER)
+  createdAt      DateTime       @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, publicationId])
+}
+
+model Subscriber {
+  id             String             @id @default(cuid())
+  publicationId  String
+  email          String
+  name           String?
+  status         SubscriptionStatus @default(ACTIVE)
+  source         String?
+  unsubscribeToken String           @unique @default(cuid())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  tags        SubscriberTag[]
+  segmentMembers SegmentMember[]
+  sendEvents   SendEvent[]
+
+  @@unique([publicationId, email])
+  @@index([publicationId, status])
+}
+
+model Tag {
+  id             String       @id @default(cuid())
+  publicationId  String
+  name           String
+  createdAt      DateTime     @default(now())
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  subscribers SubscriberTag[]
+
+  @@unique([publicationId, name])
+}
+
+model SubscriberTag {
+  subscriberId String
+  tagId        String
+
+  subscriber Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  tag        Tag        @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([subscriberId, tagId])
+}
+
+model Segment {
+  id             String   @id @default(cuid())
+  publicationId  String
+  name           String
+  filterJson     Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  members     SegmentMember[]
+
+  @@unique([publicationId, name])
+}
+
+model SegmentMember {
+  segmentId     String
+  subscriberId  String
+  createdAt     DateTime @default(now())
+
+  segment     Segment    @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  subscriber  Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  @@id([segmentId, subscriberId])
+}
+
+model Campaign {
+  id             String         @id @default(cuid())
+  publicationId  String
+  title          String
+  subject        String
+  previewText    String?
+  htmlContent    String
+  trackingId     String         @unique @default(cuid())
+  status         CampaignStatus @default(DRAFT)
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  sendJobs    SendJob[]
+  links       CampaignLink[]
+}
+
+model SendJob {
+  id             String        @id @default(cuid())
+  campaignId     String
+  subscriberId   String
+  status         SendJobStatus @default(QUEUED)
+  attemptCount   Int           @default(0)
+  lastError      String?
+  providerMessageId String?
+  sentAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriber Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, status])
+  @@index([subscriberId])
+}
+
+model CampaignLink {
+  id          String   @id @default(cuid())
+  campaignId  String
+  url         String
+  token       String   @unique @default(cuid())
+  createdAt   DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clicks   SendEvent[]
+
+  @@index([campaignId])
+}
+
+model SendEvent {
+  id            String   @id @default(cuid())
+  campaignId    String
+  subscriberId  String
+  campaignLinkId String?
+  type          SendEventType
+  occurredAt    DateTime @default(now())
+  userAgent     String?
+  ipAddress     String?
+
+  campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriber Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  link       CampaignLink? @relation(fields: [campaignLinkId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, type])
+  @@index([subscriberId])
+}
