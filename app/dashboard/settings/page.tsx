@@ -1,4 +1,4 @@
-import { getActivePublication, getCurrentUser } from "../../lib/auth";
+import { getActivePublication, getCurrentUser } from "../../../lib/auth";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
