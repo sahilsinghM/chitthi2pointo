@@ -70,11 +70,15 @@ See `prisma/schema.prisma` for:
 - `DATABASE_URL`
 - `NEXTAUTH_SECRET` (or custom auth secret)
 - `NEXT_PUBLIC_APP_URL`
-- `SES_REGION`
+- `AWS_REGION` (or `SES_REGION`)
 - `SES_ACCESS_KEY_ID`
 - `SES_SECRET_ACCESS_KEY`
 - `SES_CONFIGURATION_SET` (optional)
-- `EMAIL_FROM_DEFAULT`
+- `EMAIL_FROM` (for magic link auth, optional)
+- `EMAIL_FROM_DEFAULT` (sender default for seed data)
+- `SEED_USER_EMAIL` (seed admin email, optional)
+- `SEED_USER_PASSWORD` (seed admin password, optional)
+- `SEED_PUBLICATION_NAME` (seed publication name, optional)
 - `QUEUE_WORKER_INTERVAL_MS`
 - `QUEUE_BATCH_SIZE`
 - `S3_UPLOAD_BUCKET` (if storing uploads/media)
@@ -86,11 +90,16 @@ See `prisma/schema.prisma` for:
 - [ ] Open + click tracked (tracking pixel and link redirects record events).
 - [ ] Unsubscribe works (tokenized link marks subscriber unsubscribed and logs event).
 
+## Local auth
+- Seeded credentials are created via `npx prisma db seed`.
+- Sign in with `SEED_USER_EMAIL` + `SEED_USER_PASSWORD` (defaults in seed file).
+
 ## Deployment (Vercel + Supabase/Neon + SES sandbox)
 ### 1) Provision Postgres
 - Create a Postgres project in Supabase or Neon.
 - Copy the connection string and set it as `DATABASE_URL`.
 - Run Prisma migrations (e.g. `npx prisma migrate deploy`).
+- Seed a starter user + publication (`npx prisma db seed`).
 
 ### 2) Configure Amazon SES (sandbox)
 - Verify a sender identity (email or domain) in SES.

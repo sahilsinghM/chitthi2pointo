@@ -1,7 +1,7 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 const sesClient = new SESClient({
-  region: process.env.AWS_REGION
+  region: process.env.AWS_REGION ?? process.env.SES_REGION
 });
 
 type SendEmailParams = {

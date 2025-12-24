@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import PublicationSelector from "../components/PublicationSelector";
+import SignOutButton from "../components/SignOutButton";
+import { getCurrentUser } from "../../lib/auth";
 
 const navigation = [
   { name: "Overview", href: "/dashboard" },
@@ -8,11 +11,16 @@ const navigation = [
   { name: "Settings", href: "/dashboard/settings" }
 ];
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children
 }: {
   children: React.ReactNode;
 }) {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect("/login");
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
@@ -24,10 +32,8 @@ export default function DashboardLayout({
             <PublicationSelector />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500">hello@chitthi.app</span>
-            <button className="rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-700">
-              Sign out
-            </button>
+            <span className="text-sm text-slate-500">{user.email}</span>
+            <SignOutButton />
           </div>
         </div>
       </header>

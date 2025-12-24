@@ -24,6 +24,11 @@ export async function enqueueCampaign(campaignId: string) {
     return { enqueued: 0 };
   }
 
+  await prisma.campaign.update({
+    where: { id: campaignId },
+    data: { status: "SENDING" }
+  });
+
   const jobs = subscribers.map((subscriber) => ({
     campaignId,
     subscriberId: subscriber.id
@@ -35,6 +40,48 @@ export async function enqueueCampaign(campaignId: string) {
   });
 
   return { enqueued: jobs.length };
+}
+
+export async function updateCampaignStatusIfComplete(campaignId: string) {
+  const pending = await prisma.sendJob.count({
+    where: {
+      campaignId,
+      status: { in: ["QUEUED", "PROCESSING", "RETRYING"] }
+    }
+  });
+
+  if (pending > 0) {
+    return false;
+  }
+
+  const failed = await prisma.sendJob.count({
+    where: {
+      campaignId,
+      status: "FAILED"
+    }
+  });
+
+  if (failed > 0) {
+    await prisma.campaign.update({
+      where: { id: campaignId },
+      data: {
+        status: "FAILED",
+        sentAt: null
+      }
+    });
+
+    return true;
+  }
+
+  await prisma.campaign.update({
+    where: { id: campaignId },
+    data: {
+      status: "SENT",
+      sentAt: new Date()
+    }
+  });
+
+  return true;
 }
 
 export async function fetchQueuedJobs() {

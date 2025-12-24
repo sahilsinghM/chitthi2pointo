@@ -4,30 +4,48 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "dev:all": "concurrently -k \"npm run dev\" \"npm run worker\"",
+    "build": "NODE_OPTIONS=\"--require ./scripts/force-wasm.js\" next build",
     "start": "next start",
     "lint": "next lint",
-    "worker": "ts-node scripts/worker.ts"
+    "test": "vitest",
+    "test:unit": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "worker": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/worker.ts"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "3.609.0",
-    "next": "14.2.5",
-    "next-auth": "5.0.0-beta.19",
     "@prisma/client": "5.17.0",
+    "bcryptjs": "2.4.3",
+    "next": "^15.5.9",
+    "next-auth": "^5.0.0-beta.30",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.47.2",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.0.1",
+    "@testing-library/user-event": "14.5.2",
+    "@types/bcryptjs": "2.4.6",
     "@types/node": "20.14.10",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
     "autoprefixer": "10.4.19",
+    "concurrently": "9.0.1",
     "eslint": "8.57.0",
-    "eslint-config-next": "14.2.5",
+    "eslint-config-next": "^15.5.9",
+    "jsdom": "24.1.1",
+    "playwright": "1.47.2",
     "postcss": "8.4.39",
     "prisma": "5.17.0",
     "tailwindcss": "3.4.7",
     "ts-node": "10.9.2",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "vitest": "2.0.5"
   }
 }

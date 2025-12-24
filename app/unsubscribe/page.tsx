@@ -3,10 +3,9 @@ import { prisma } from "../../lib/prisma";
 export default async function UnsubscribePage({
   searchParams
 }: {
-  searchParams: { token?: string; campaignId?: string };
+  searchParams: Promise<{ token?: string; campaignId?: string }>;
 }) {
-  const token = searchParams.token;
-  const campaignId = searchParams.campaignId;
+  const { token, campaignId } = await searchParams;
 
   if (!token) {
     return (

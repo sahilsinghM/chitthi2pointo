@@ -11,7 +11,8 @@ import {
   fetchQueuedJobs,
   markJobFailed,
   markJobProcessing,
-  markJobSent
+  markJobSent,
+  updateCampaignStatusIfComplete
 } from "../lib/queue";
 
 async function getOrCreateLinkToken(campaignId: string, url: string) {
@@ -121,6 +122,7 @@ async function workerLoop() {
 
   for (const job of jobs) {
     await processJob(job.id);
+    await updateCampaignStatusIfComplete(job.campaignId);
   }
 }
 

@@ -1,7 +1,16 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import PostEditor from "../../../components/PostEditor";
+import { getActivePublication, getCurrentUser } from "../../../../lib/auth";
 
-export default function NewPostPage() {
+export default async function NewPostPage() {
+  const user = await getCurrentUser();
+  const publication = user ? await getActivePublication(user.id) : null;
+
+  if (!publication) {
+    notFound();
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -20,7 +29,7 @@ export default function NewPostPage() {
           Back to posts
         </Link>
       </div>
-      <PostEditor title="" body="" status="draft" />
+      <PostEditor campaignId={undefined} title="" subject="" body="" status="draft" />
     </div>
   );
 }

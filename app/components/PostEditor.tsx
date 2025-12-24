@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 type PostStatus = "draft" | "scheduled" | "sent";
 
 type PostEditorProps = {
+  campaignId?: string;
   title: string;
+  subject: string;
   body: string;
   status: PostStatus;
 };
@@ -16,10 +19,14 @@ const statusOptions: { value: PostStatus; label: string }[] = [
   { value: "sent", label: "Sent" }
 ];
 
-export default function PostEditor({ title, body, status }: PostEditorProps) {
+export default function PostEditor({ campaignId, title, subject, body, status }: PostEditorProps) {
+  const router = useRouter();
   const [postTitle, setPostTitle] = useState(title);
+  const [postSubject, setPostSubject] = useState(subject);
   const [postBody, setPostBody] = useState(body);
   const [postStatus, setPostStatus] = useState<PostStatus>(status);
+  const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   const previewBody = useMemo(() => {
     if (!postBody.trim()) {
@@ -28,6 +35,61 @@ export default function PostEditor({ title, body, status }: PostEditorProps) {
 
     return postBody;
   }, [postBody]);
+
+  const handleSave = (overrideStatus?: PostStatus) => {
+    setError("");
+    startTransition(async () => {
+      const payload = {
+        title: postTitle,
+        subject: postSubject || postTitle,
+        body: postBody,
+        status: overrideStatus ?? postStatus
+      };
+
+      const response = await fetch(
+        campaignId ? `/api/campaigns/${campaignId}` : "/api/campaigns",
+        {
+          method: campaignId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (!response.ok) {
+        setError("Unable to save campaign. Check required fields.");
+        return;
+      }
+
+      const data = await response.json();
+      const id = data?.campaign?.id;
+      if (!campaignId && id) {
+        router.replace(`/dashboard/posts/${id}`);
+      }
+    });
+  };
+
+  const handleSend = () => {
+    if (!campaignId) {
+      setError("Save the campaign before sending.");
+      return;
+    }
+
+    setError("");
+    startTransition(async () => {
+      const response = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaignId })
+      });
+
+      if (!response.ok) {
+        setError("Unable to enqueue send. Check subscribers and settings.");
+        return;
+      }
+
+      router.refresh();
+    });
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -43,18 +105,39 @@ export default function PostEditor({ title, body, status }: PostEditorProps) {
               </h1>
             </div>
             <div className="flex items-center gap-2">
-              <button className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+              <button
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60"
+                type="button"
+                onClick={() => handleSave("draft")}
+                disabled={isPending}
+              >
                 Save as draft
               </button>
-              <button className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+              <button
+                className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                type="button"
+                onClick={() => handleSave()}
+                disabled={isPending}
+              >
                 Save changes
+              </button>
+              <button
+                className="rounded-full border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50 disabled:opacity-60"
+                type="button"
+                onClick={handleSend}
+                disabled={isPending || !campaignId}
+              >
+                Send now
               </button>
             </div>
           </div>
           <div className="mt-6 space-y-4">
             <div>
-              <label className="text-xs font-semibold text-slate-600">Title</label>
+              <label className="text-xs font-semibold text-slate-600" htmlFor="post-title">
+                Title
+              </label>
               <input
+                id="post-title"
                 className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 placeholder="Weekly product update"
                 value={postTitle}
@@ -62,8 +145,23 @@ export default function PostEditor({ title, body, status }: PostEditorProps) {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-600">Status</label>
+              <label className="text-xs font-semibold text-slate-600" htmlFor="post-subject">
+                Subject
+              </label>
+              <input
+                id="post-subject"
+                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                placeholder="Subject line"
+                value={postSubject}
+                onChange={(event) => setPostSubject(event.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-600" htmlFor="post-status">
+                Status
+              </label>
               <select
+                id="post-status"
                 className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                 value={postStatus}
                 onChange={(event) => setPostStatus(event.target.value as PostStatus)}
@@ -76,8 +174,11 @@ export default function PostEditor({ title, body, status }: PostEditorProps) {
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-600">Body</label>
+              <label className="text-xs font-semibold text-slate-600" htmlFor="post-body">
+                Body
+              </label>
               <textarea
+                id="post-body"
                 className="mt-2 min-h-[240px] w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 placeholder="Write your newsletter content here..."
                 value={postBody}
@@ -88,6 +189,7 @@ export default function PostEditor({ title, body, status }: PostEditorProps) {
                 wired later.
               </p>
             </div>
+            {error ? <p className="text-xs text-rose-600">{error}</p> : null}
           </div>
         </div>
       </div>

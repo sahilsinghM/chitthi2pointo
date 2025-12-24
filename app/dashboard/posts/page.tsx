@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "../../../lib/prisma";
+import { getActivePublication, getCurrentUser } from "../../../lib/auth";
 
 type CampaignCard = {
   id: string;
@@ -24,13 +25,28 @@ function formatDate(value: Date | null) {
 }
 
 export default async function PostsPage() {
+  const user = await getCurrentUser();
+  const publication = user ? await getActivePublication(user.id) : null;
+
+  if (!publication) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
+        Create a publication to start drafting campaigns.
+      </div>
+    );
+  }
+
   const campaigns = await prisma.campaign.findMany({
+    where: { publicationId: publication.id },
     orderBy: { updatedAt: "desc" },
     take: 10
   });
 
   const eventCounts = await prisma.sendEvent.groupBy({
     by: ["campaignId", "type"],
+    where: {
+      campaign: { publicationId: publication.id }
+    },
     _count: { _all: true }
   });
 

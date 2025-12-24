@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LoginForm from "../components/LoginForm";
 
 export default function LoginPage() {
   return (
@@ -13,38 +14,7 @@ export default function LoginPage() {
             Use your email and password or request a magic link.
           </p>
         </div>
-        <form className="mt-6 space-y-4">
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-600" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              placeholder="you@company.com"
-            />
-          </div>
-          <div className="space-y-2">
-            <label
-              className="text-xs font-semibold text-slate-600"
-              htmlFor="password"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              placeholder="••••••••"
-            />
-          </div>
-          <button className="w-full rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-            Sign in
-          </button>
-        </form>
+        <LoginForm />
         <div className="mt-4 text-center text-xs text-slate-500">
           Or <button className="font-semibold text-brand-600">email a magic link</button>
         </div>

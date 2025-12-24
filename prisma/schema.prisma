@@ -7,6 +7,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum MembershipRole {
@@ -26,6 +27,7 @@ enum CampaignStatus {
   DRAFT
   SCHEDULED
   SENDING
+  FAILED
   SENT
 }
 
@@ -112,6 +114,7 @@ model Subscriber {
   tags        SubscriberTag[]
   segmentMembers SegmentMember[]
   sendEvents   SendEvent[]
+  sendJobs     SendJob[]
 
   @@unique([publicationId, email])
   @@index([publicationId, status])
@@ -181,6 +184,7 @@ model Campaign {
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   sendJobs    SendJob[]
   links       CampaignLink[]
+  sendEvents  SendEvent[]
 }
 
 model SendJob {
